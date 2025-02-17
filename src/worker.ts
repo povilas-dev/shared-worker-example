@@ -13,6 +13,9 @@ onconnect = (e) => {
         workerStorage[entry[0]] = entry[1] as string;
       });
     }
+    if (type === 'get') {
+      port.postMessage(workerStorage);
+    }
     console.log({workerStorage});
     // const workerResult = `Result: ${e.data[0] * e.data[1]}`;
     port.postMessage(workerStorage);

@@ -4,8 +4,8 @@ import {DataRenderer} from './DataRenderer';
 function App() {
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
-      <DataRenderer record={{aaa: 'bbb'}} />
-      <DataRenderer record={{aaa: 'ddd'}} />
+      <DataRenderer workerName="first worker" record={{aaa: 'first'}} />
+      <DataRenderer workerName="second worker" record={{aaa: 'second'}} />
     </div>
   );
 }

@@ -1,24 +1,47 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 
-export const DataRenderer = ({record}: {record: Record<string, string>}) => {
+export const DataRenderer = ({
+  record,
+  workerName,
+}: {
+  record: Record<string, string>;
+  workerName: string;
+}) => {
+  const workerRef = useRef<SharedWorker | null>(null);
   useEffect(() => {
-    const myWorker = new SharedWorker(new URL('./worker', import.meta.url), {
+    workerRef.current = new SharedWorker(new URL('./worker', import.meta.url), {
       type: 'module',
+      name: workerName,
     });
-    myWorker.port.start();
-    myWorker.port.postMessage({type: 'set', data: {record}});
+    workerRef.current.port.start();
+    workerRef.current.port.postMessage({type: 'set', data: {record}});
 
-    myWorker.port.onmessage = (e) => {
-      console.log('Message received from worker', e.data);
+    workerRef.current.port.onmessage = (e) => {
+      console.log(
+        `WORKER "${workerName}": `,
+        'Message received from worker',
+        e.data
+      );
     };
   }, []);
   return (
     <div>
       {Object.entries(record).map((entry) => {
         return (
-          <div key={entry[0]} style={{display: 'flex', gap: '4px'}}>
+          <div
+            key={entry[0]}
+            style={{display: 'flex', gap: '4px', alignItems: 'center'}}
+          >
             <div>{entry[0]}</div>
             <div>{entry[1]}</div>
+            <button
+              onClick={() => {
+                if (workerRef.current)
+                  workerRef.current.port.postMessage({type: 'get'});
+              }}
+            >
+              Get
+            </button>
           </div>
         );
       })}
