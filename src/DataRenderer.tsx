@@ -1,6 +1,16 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 
-const WORKER_ID = 'my-custom-worker';
+const WORKER_ID: string = 'my-custom-worker';
+
+//@ts-expect-error
+let worker = window[WORKER_ID] as Worker | null;
+
+if (!worker) {
+  console.log('create worker!');
+  worker = new Worker(new URL('./dedicated-worker', import.meta.url), {
+    type: 'module',
+  });
+}
 
 export const DataRenderer = ({
   record,
@@ -9,21 +19,25 @@ export const DataRenderer = ({
   record: Record<string, string>;
   componentName: string;
 }) => {
-  useEffect(() => {
-    if (!window[WORKER_ID]) {
-      window[WORKER_ID] = new Worker(
-        new URL('./dedicated-worker', import.meta.url),
-        {
-          type: 'module',
-        }
-      );
-    }
-    window[WORKER_ID].postMessage({type: 'set', componentName, data: {record}});
+  const isRecordSet = useRef(false);
 
-    window[WORKER_ID].addEventListener('message', (e) => {
+  useEffect(() => {
+    // Send the "set" message only if it hasn't been sent yet, workaround for React 18
+    if (!isRecordSet.current) {
+      worker.postMessage({type: 'set', componentName, data: {record}});
+      isRecordSet.current = true;
+    }
+
+    const handleWorkerMessage = (e: MessageEvent) => {
       if (e.data.type === 'get' && e.data.componentName === componentName)
-        console.log(WORKER_ID, e.data);
-    });
+        console.log(componentName, e.data);
+    };
+
+    worker.addEventListener('message', handleWorkerMessage);
+
+    return () => {
+      if (worker) worker.removeEventListener('message', handleWorkerMessage);
+    };
   }, []);
 
   return (
@@ -38,8 +52,7 @@ export const DataRenderer = ({
             <div>{entry[1]}</div>
             <button
               onClick={() => {
-                if (window[WORKER_ID])
-                  window[WORKER_ID].postMessage({type: 'get', componentName});
+                if (worker) worker.postMessage({type: 'get', componentName});
               }}
             >
               Get

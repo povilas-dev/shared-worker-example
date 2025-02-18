@@ -1,0 +1,1 @@
+(function(){"use strict";const t={};self.onmessage=o=>{const{data:a,type:s,componentName:e}=o.data;console.log("dedicated-worker: ",o.data),s==="set"&&e&&a.record&&Object.entries(a.record).forEach(c=>{const[r,d]=c;t[e]||(t[e]={}),t[e][r]=d}),s==="get"&&self.postMessage({type:"get",componentName:e,data:t})}})();
