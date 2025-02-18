@@ -13,6 +13,7 @@ onconnect = (e) => {
         workerStorage[entry[0]] = entry[1] as string;
       });
     }
+
     if (type === 'get') {
       port.postMessage(workerStorage);
     }

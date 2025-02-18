@@ -1,29 +1,31 @@
-import {useEffect, useRef} from 'react';
+import {useEffect} from 'react';
+
+const WORKER_ID = 'my-custom-worker';
 
 export const DataRenderer = ({
   record,
-  workerName,
+  componentName,
 }: {
   record: Record<string, string>;
-  workerName: string;
+  componentName: string;
 }) => {
-  const workerRef = useRef<SharedWorker | null>(null);
   useEffect(() => {
-    workerRef.current = new SharedWorker(new URL('./worker', import.meta.url), {
-      type: 'module',
-      name: workerName,
-    });
-    workerRef.current.port.start();
-    workerRef.current.port.postMessage({type: 'set', data: {record}});
-
-    workerRef.current.port.onmessage = (e) => {
-      console.log(
-        `WORKER "${workerName}": `,
-        'Message received from worker',
-        e.data
+    if (!window[WORKER_ID]) {
+      window[WORKER_ID] = new Worker(
+        new URL('./dedicated-worker', import.meta.url),
+        {
+          type: 'module',
+        }
       );
-    };
+    }
+    window[WORKER_ID].postMessage({type: 'set', componentName, data: {record}});
+
+    window[WORKER_ID].addEventListener('message', (e) => {
+      if (e.data.type === 'get' && e.data.componentName === componentName)
+        console.log(WORKER_ID, e.data);
+    });
   }, []);
+
   return (
     <div>
       {Object.entries(record).map((entry) => {
@@ -36,8 +38,8 @@ export const DataRenderer = ({
             <div>{entry[1]}</div>
             <button
               onClick={() => {
-                if (workerRef.current)
-                  workerRef.current.port.postMessage({type: 'get'});
+                if (window[WORKER_ID])
+                  window[WORKER_ID].postMessage({type: 'get', componentName});
               }}
             >
               Get
